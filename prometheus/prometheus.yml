@@ -1,0 +1,12 @@
+scrape_configs:
+  - job_name: 'eventflow-services'
+    scrape_interval: 5s
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets:
+          - 'gateway-service:8080'
+          - 'order-service:8081'
+          - 'payment-service:8082'
+          - 'inventory-service:8083'
+          - 'notification-service:8084'
+          - 'analytics-service:8086'

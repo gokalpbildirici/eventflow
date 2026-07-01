@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zipkin — Distributed Tracing</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+        .zipkin {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .topbar {
+            background: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .topbar .logo { font-size: 1.3em; font-weight: 700; }
+        .topbar .nav { display: flex; gap: 16px; }
+        .topbar .nav a { color: #b0b0b0; text-decoration: none; font-size: 0.9em; }
+        .topbar .nav a.active { color: white; }
+        .search-box {
+            background: #34495e;
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            margin-left: auto;
+            width: 200px;
+        }
+        .content { padding: 20px; }
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        .filter-bar button {
+            padding: 6px 16px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85em; }
+        th {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 2px solid #eee;
+            color: #666;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .trace-bar {
+            display: flex;
+            height: 22px;
+            border-radius: 4px;
+            overflow: hidden;
+            min-width: 200px;
+        }
+        .trace-seg {
+            height: 100%;
+        }
+        .trace-seg.gateway { background: #e67e22; }
+        .trace-seg.order { background: #3498db; }
+        .trace-seg.payment { background: #2ecc71; }
+        .trace-seg.kafka { background: #9b59b6; }
+        .trace-seg.inventory { background: #1abc9c; }
+        .trace-seg.notification { background: #e74c3c; }
+        .service-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            color: white;
+        }
+        .tag-gateway { background: #e67e22; }
+        .tag-order { background: #3498db; }
+        .tag-payment { background: #2ecc71; }
+        .tag-kafka { background: #9b59b6; }
+        .tag-inventory { background: #1abc9c; }
+        .status-ok { color: #2ecc71; font-weight: 600; }
+        .status-err { color: #e74c3c; font-weight: 600; }
+        .trace-detail {
+            margin-top: 20px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 16px;
+        }
+        .trace-detail h3 { margin-bottom: 12px; font-size: 1em; }
+        .span-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.85em;
+        }
+        .span-row .span-name { width: 180px; font-weight: 500; }
+        .span-row .span-service { width: 120px; color: #666; }
+        .span-row .span-duration { width: 100px; text-align: right; color: #666; }
+        .span-timeline {
+            flex: 1;
+            height: 14px;
+            background: #f0f0f0;
+            border-radius: 3px;
+            position: relative;
+            margin-left: 12px;
+        }
+        .span-timeline .fill {
+            height: 100%;
+            border-radius: 3px;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .span-timeline .fill.orange { background: #e67e22; }
+        .span-timeline .fill.blue { background: #3498db; }
+        .span-timeline .fill.green { background: #2ecc71; }
+        .span-timeline .fill.purple { background: #9b59b6; }
+        .span-timeline .fill.teal { background: #1abc9c; }
+        .span-timeline .fill.red { background: #e74c3c; }
+    </style>
+</head>
+<body>
+<div class="zipkin">
+    <div class="topbar">
+        <div class="logo">🔍 Zipkin</div>
+        <div class="nav">
+            <a href="#" class="active">Traces</a>
+            <a href="#">Dependencies</a>
+            <a href="#">Service Graph</a>
+        </div>
+        <input class="search-box" placeholder="Search by trace ID..." value="">
+    </div>
+    <div class="content">
+        <div class="filter-bar">
+            <input placeholder="Service name" value="order-service">
+            <input placeholder="Span name" value="">
+            <input placeholder="Tags" value="">
+            <select><option>All Durations</option></select>
+            <button>🔍 Search</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:30%">Trace</th>
+                    <th>Services</th>
+                    <th>Duration</th>
+                    <th>Spans</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <div class="trace-bar">
+                            <div class="trace-seg gateway" style="width:8%"></div>
+                            <div class="trace-seg order" style="width:12%"></div>
+                            <div class="trace-seg kafka" style="width:5%"></div>
+                            <div class="trace-seg payment" style="width:15%"></div>
+                            <div class="trace-seg kafka" style="width:5%"></div>
+                            <div class="trace-seg inventory" style="width:10%"></div>
+                            <div class="trace-seg kafka" style="width:5%"></div>
+                            <div class="trace-seg notification" style="width:8%"></div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="service-tag tag-gateway">gateway</span>
+                        <span class="service-tag tag-order">order</span>
+                        <span class="service-tag tag-payment">payment</span>
+                        <span class="service-tag tag-inventory">inventory</span>
+                    </td>
+                    <td>342ms</td>
+                    <td>12</td>
+                    <td>18:23:45</td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="trace-bar">
+                            <div class="trace-seg gateway" style="width:6%"></div>
+                            <div class="trace-seg order" style="width:10%"></div>
+                            <div class="trace-seg kafka" style="width:4%"></div>
+                            <div class="trace-seg payment" style="width:12%"></div>
+                            <div class="trace-seg kafka" style="width:4%"></div>
+                            <div class="trace-seg notification" style="width:7%"></div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="service-tag tag-gateway">gateway</span>
+                        <span class="service-tag tag-order">order</span>
+                        <span class="service-tag tag-payment">payment</span>
+                    </td>
+                    <td>215ms</td>
+                    <td>8</td>
+                    <td>18:23:42</td>
+                </tr>
+                <tr>
+                    <td>
+                        <div class="trace-bar">
+                            <div class="trace-seg gateway" style="width:5%"></div>
+                            <div class="trace-seg order" style="width:8%"></div>
+                            <div class="trace-seg kafka" style="width:6%"></div>
+                            <div class="trace-seg inventory" style="width:14%"></div>
+                            <div class="trace-seg kafka" style="width:5%"></div>
+                            <div class="trace-seg notification" style="width:6%"></div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="service-tag tag-gateway">gateway</span>
+                        <span class="service-tag tag-order">order</span>
+                        <span class="service-tag tag-inventory">inventory</span>
+                    </td>
+                    <td>156ms</td>
+                    <td>7</td>
+                    <td>18:23:40</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="trace-detail">
+            <h3>🔬 Trace Detail — a1b2c3d4e5f6 (342ms)</h3>
+            <div class="span-row">
+                <span class="span-name">POST /api/orders</span>
+                <span class="span-service"><span class="service-tag tag-gateway">gateway</span></span>
+                <span class="span-duration">28ms</span>
+                <div class="span-timeline"><div class="fill orange" style="width:8%"></div></div>
+            </div>
+            <div class="span-row">
+                <span class="span-name">createOrder</span>
+                <span class="span-service"><span class="service-tag tag-order">order</span></span>
+                <span class="span-duration">42ms</span>
+                <div class="span-timeline"><div class="fill blue" style="width:12%"></div></div>
+            </div>
+            <div class="span-row">
+                <span class="span-name">order.events (produce)</span>
+                <span class="span-service"><span class="service-tag tag-kafka">kafka</span></span>
+                <span class="span-duration">18ms</span>
+                <div class="span-timeline"><div class="fill purple" style="width:5%"></div></div>
+            </div>
+            <div class="span-row">
+                <span class="span-name">processPayment</span>
+                <span class="span-service"><span class="service-tag tag-payment">payment</span></span>
+                <span class="span-duration">52ms</span>
+                <div class="span-timeline"><div class="fill green" style="width:15%"></div></div>
+            </div>
+            <div class="span-row">
+                <span class="span-name">payment.events (produce)</span>
+                <span class="span-service"><span class="service-tag tag-kafka">kafka</span></span>
+                <span class="span-duration">16ms</span>
+                <div class="span-timeline"><div class="fill purple" style="width:5%"></div></div>
+            </div>
+            <div class="span-row">
+                <span class="span-name">reserveStock</span>
+                <span class="span-service"><span class="service-tag tag-inventory">inventory</span></span>
+                <span class="span-duration">35ms</span>
+                <div class="span-timeline"><div class="fill teal" style="width:10%"></div></div>
+            </div>
+            <div class="span-row">
+                <span class="span-name">notifyOrderCreated</span>
+                <span class="span-service"><span class="service-tag tag-notification">notification</span></span>
+                <span class="span-duration">12ms</span>
+                <div class="span-timeline"><div class="fill red" style="width:4%"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

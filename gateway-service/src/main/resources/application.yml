@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: order-service
+          uri: http://${ORDER_SERVICE_HOST:localhost}:${ORDER_SERVICE_PORT:8081}
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - StripPrefix=0
+
+        - id: payment-service
+          uri: http://${PAYMENT_SERVICE_HOST:localhost}:${PAYMENT_SERVICE_PORT:8082}
+          predicates:
+            - Path=/api/payments/**
+          filters:
+            - StripPrefix=0
+
+        - id: inventory-service
+          uri: http://${INVENTORY_SERVICE_HOST:localhost}:${INVENTORY_SERVICE_PORT:8083}
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - StripPrefix=0
+
+        - id: analytics-service
+          uri: http://${ANALYTICS_SERVICE_HOST:localhost}:${ANALYTICS_SERVICE_PORT:8086}
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - StripPrefix=0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,gatway
+  tracing:
+    sampling:
+      probability: 1.0

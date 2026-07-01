@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal — EventFlow Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+            background: #0d1117;
+            padding: 30px;
+        }
+        .terminal {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 900px;
+            margin: 0 auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .terminal-header {
+            background: #21262d;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+        .terminal-dot {
+            width: 12px; height: 12px; border-radius: 50%;
+        }
+        .terminal-dot.red { background: #f85149; }
+        .terminal-dot.yellow { background: #d29922; }
+        .terminal-dot.green { background: #3fb950; }
+        .terminal-title {
+            color: #8b949e;
+            font-size: 0.85em;
+            margin-left: 12px;
+        }
+        .terminal-body {
+            padding: 24px;
+            font-size: 0.9em;
+            line-height: 1.7;
+        }
+        .prompt { color: #3fb950; }
+        .prompt-sym { color: #f0883e; }
+        .cmd { color: #f0f6fc; }
+        .output { color: #8b949e; }
+        .output-green { color: #3fb950; }
+        .output-blue { color: #58a6ff; }
+        .output-yellow { color: #d29922; }
+        .output-red { color: #f85149; }
+        .output-white { color: #f0f6fc; }
+        .json-key { color: #79c0ff; }
+        .json-string { color: #a5d6ff; }
+        .json-number { color: #79c0ff; }
+        .json-bool { color: #d2a8ff; }
+        .line { margin: 2px 0; }
+        .divider {
+            border: none;
+            border-top: 1px solid #21262d;
+            margin: 16px 0;
+        }
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #3fb950;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+<div class="terminal">
+    <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">eventflow — Build & Demo</span>
+    </div>
+    <div class="terminal-body">
+
+        <div class="line"><span class="prompt">❯</span> <span class="cmd">cd eventflow && mvn clean package -DskipTests -q</span></div>
+        <div class="line"><span class="output-green">✓ BUILD SUCCESS</span></div>
+        <hr class="divider">
+
+        <div class="line"><span class="prompt">❯</span> <span class="cmd">docker compose up -d</span></div>
+        <div class="line"><span class="output-green">✓</span><span class="output"> Starting zookeeper  ... done</span></div>
+        <div class="line"><span class="output-green">✓</span><span class="output"> Starting kafka       ... done</span></div>
+        <div class="line"><span class="output-green">✓</span><span class="output"> Starting zipkin      ... done</span></div>
+        <div class="line"><span class="output-green">✓</span><span class="output"> Starting prometheus  ... done</span></div>
+        <div class="line"><span class="output-green">✓</span><span class="output"> Starting grafana     ... done</span></div>
+        <hr class="divider">
+
+        <div class="line"><span class="prompt">❯</span> <span class="cmd">curl -s http://localhost:8080/actuator/health | jq .</span></div>
+        <div class="line"><span class="output">{</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"status"</span>: <span class="json-string">"UP"</span></span></div>
+        <div class="line"><span class="output">}</span></div>
+        <hr class="divider">
+
+        <div class="line"><span class="prompt">❯</span> <span class="cmd">curl -s -X POST http://localhost:8080/api/orders \</span></div>
+        <div class="line"><span class="cmd">  -H "Content-Type: application/json" \</span></div>
+        <div class="line"><span class="cmd">  -d '{"customerId":"C001","productId":"P001","quantity":2,"totalAmount":3000}'</span></div>
+        <div class="line"><span class="output">{</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"id"</span>:          <span class="json-string">"a1b2c3d4-..."</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"customerId"</span>:  <span class="json-string">"C001"</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"productId"</span>:   <span class="json-string">"P001"</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"quantity"</span>:    <span class="json-number">2</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"totalAmount"</span>: <span class="json-number">3000.0</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"status"</span>:      <span class="json-string">"PENDING"</span></span></div>
+        <div class="line"><span class="output">}</span></div>
+        <hr class="divider">
+
+        <div class="line"><span class="prompt">❯</span> <span class="cmd">curl -s http://localhost:8080/api/analytics/summary</span></div>
+        <div class="line"><span class="output">{</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"totalOrders"</span>:       <span class="json-number">42</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"successfulPayments"</span>: <span class="json-number">34</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"failedPayments"</span>:    <span class="json-number">8</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"stockReservations"</span>: <span class="json-number">40</span>,</span></div>
+        <div class="line"><span class="output">  <span class="json-key">"stockFailures"</span>:     <span class="json-number">2</span></span></div>
+        <div class="line"><span class="output">}</span></div>
+        <hr class="divider">
+
+        <div class="line"><span class="prompt">❯</span> <span class="cmd">docker compose ps</span></div>
+        <div class="line"><span class="output-blue">eventflow-gateway</span><span class="output">      :8080   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-order</span><span class="output">        :8081   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-payment</span><span class="output">      :8082   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-inventory</span><span class="output">    :8083   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-notification</span><span class="output"> :8084   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-analytics</span><span class="output">   :8086   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-kafka</span><span class="output">        :9092   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-zipkin</span><span class="output">      :9411   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-prometheus</span><span class="output">  :9090   Up</span></div>
+        <div class="line"><span class="output-blue">eventflow-grafana</span><span class="output">     :3000   Up</span></div>
+        <hr class="divider">
+
+        <div class="line"><span class="prompt">❯</span> <span class="cmd"># Done! 10 containers running 🚀</span></div>
+        <div class="line"><span class="prompt">❯</span> <span class="cmd"><span class="cursor"></span></span></div>
+
+    </div>
+</div>
+</body>
+</html>

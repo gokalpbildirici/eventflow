@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventFlow — Event-Driven Microservice Showcase</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            line-height: 1.6;
+            padding: 40px;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            padding: 50px 0 30px;
+            border-bottom: 1px solid #30363d;
+        }
+        .header h1 {
+            font-size: 2.8em;
+            background: linear-gradient(135deg, #58a6ff, #3fb950, #f0883e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .header p { font-size: 1.2em; color: #8b949e; }
+        .badges { text-align: center; margin: 20px 0 40px; }
+        .badges span {
+            display: inline-block;
+            padding: 6px 16px;
+            margin: 4px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .badge-blue { background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb66; }
+        .badge-green { background: #23863633; color: #3fb950; border: 1px solid #23863666; }
+        .badge-orange { background: #da670033; color: #f0883e; border: 1px solid #da670066; }
+        .badge-purple { background: #8957e533; color: #a371f7; border: 1px solid #8957e566; }
+        .badge-red { background: #da363333; color: #f85149; border: 1px solid #da363366; }
+        .section {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .section h2 {
+            font-size: 1.5em;
+            color: #58a6ff;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h2 .icon { font-size: 1.3em; }
+        .arch-grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .arch-row { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+        .arch-box {
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 10px;
+            padding: 16px 24px;
+            text-align: center;
+            min-width: 140px;
+        }
+        .arch-box .port { font-size: 0.75em; color: #8b949e; }
+        .arch-box .name { font-weight: 600; color: #f0f6fc; margin: 4px 0; }
+        .arch-box .tech { font-size: 0.8em; color: #58a6ff; }
+        .arch-box.gateway { border-color: #f0883e; }
+        .arch-box.gateway .tech { color: #f0883e; }
+        .arch-box.service { border-color: #58a6ff; }
+        .arch-box.service .tech { color: #58a6ff; }
+        .arch-box.consumer { border-color: #3fb950; }
+        .arch-box.consumer .tech { color: #3fb950; }
+        .arch-box.kafka { border-color: #a371f7; background: #8957e522; }
+        .arch-box.kafka .tech { color: #a371f7; }
+        .arch-arrow { color: #8b949e; font-size: 1.5em; }
+        .code-block {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .code-block .comment { color: #8b949e; }
+        .code-block .keyword { color: #ff7b72; }
+        .code-block .string { color: #a5d6ff; }
+        .code-block .number { color: #79c0ff; }
+        .code-block .method { color: #d2a8ff; }
+        .code-block .response { color: #7ee787; }
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+        }
+        .flow-box {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px 16px;
+        }
+        .flow-arrow { color: #8b949e; font-size: 1.2em; }
+        .flow-box.green { border-color: #3fb950; }
+        .flow-box.blue { border-color: #58a6ff; }
+        .flow-box.purple { border-color: #a371f7; }
+        .flow-box.orange { border-color: #f0883e; }
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .tech-item {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .tech-item .label { color: #8b949e; }
+        .tech-item .value { color: #f0f6fc; font-weight: 500; }
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #8b949e;
+            border-top: 1px solid #30363d;
+            margin-top: 40px;
+        }
+        .footer a { color: #58a6ff; text-decoration: none; }
+        .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .api-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .api-card .method {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .method-post { background: #23863633; color: #3fb950; }
+        .method-get { background: #1f6feb33; color: #58a6ff; }
+        .api-card .endpoint { color: #f0f6fc; font-family: monospace; }
+        .api-card .desc { color: #8b949e; font-size: 0.85em; margin-top: 4px; }
+        .stats-row {
+            display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;
+        }
+        .stat-box {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 20px 30px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .stat-box .num { font-size: 2em; font-weight: 700; color: #58a6ff; }
+        .stat-box .label { color: #8b949e; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>⚡ EventFlow</h1>
+        <p>Event-Driven Microservice Architecture with Spring Boot 4.1 & Apache Kafka</p>
+        <div class="badges">
+            <span class="badge-blue">#SpringBoot 4.1</span>
+            <span class="badge-green">#Java 21</span>
+            <span class="badge-orange">#Apache Kafka</span>
+            <span class="badge-purple">#Docker</span>
+            <span class="badge-red">#Microservices</span>
+            <span class="badge-blue">#Spring Cloud</span>
+            <span class="badge-green">#Prometheus</span>
+            <span class="badge-orange">#Grafana</span>
+            <span class="badge-purple">#Zipkin</span>
+            <span class="badge-blue">#GitHub Actions</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2><span class="icon">📊</span> Project Stats</h2>
+        <div class="stats-row">
+            <div class="stat-box"><div class="num">7</div><div class="label">Modules</div></div>
+            <div class="stat-box"><div class="num">6</div><div class="label">Microservices</div></div>
+            <div class="stat-box"><div class="num">3</div><div class="label">Kafka Topics</div></div>
+            <div class="stat-box"><div class="num">3</div><div class="label">REST APIs</div></div>
+            <div class="stat-box"><div class="num">5</div><div class="label">Event Handlers</div></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2><span class="icon">🏗️</span> Architecture</h2>
+        <div class="arch-grid">
+            <div class="arch-row">
+                <div class="arch-box gateway">
+                    <div class="port">:8080</div>
+                    <div class="name">Gateway Service</div>
+                    <div class="tech">Spring Cloud Gateway</div>
+                </div>
+            </div>
+            <div class="arch-arrow">⬇</div>
+            <div class="arch-row">
+                <div class="arch-box service">
+                    <div class="port">:8081</div>
+                    <div class="name">Order Service</div>
+                    <div class="tech">REST + Producer</div>
+                </div>
+                <div class="arch-box service">
+                    <div class="port">:8082</div>
+                    <div class="name">Payment Service</div>
+                    <div class="tech">Consumer + Producer</div>
+                </div>
+                <div class="arch-box service">
+                    <div class="port">:8083</div>
+                    <div class="name">Inventory Service</div>
+                    <div class="tech">REST + Consumer</div>
+                </div>
+            </div>
+            <div class="arch-arrow">⬇</div>
+            <div class="arch-row">
+                <div class="arch-box kafka" style="min-width: 200px;">
+                    <div class="name">Apache Kafka</div>
+                    <div class="tech">Event Bus</div>
+                </div>
+            </div>
+            <div class="arch-arrow">⬇</div>
+            <div class="arch-row">
+                <div class="arch-box consumer">
+                    <div class="port">:8084</div>
+                    <div class="name">Notification</div>
+                    <div class="tech">Consumer</div>
+                </div>
+                <div class="arch-box consumer">
+                    <div class="port">:8086</div>
+                    <div class="name">Analytics</div>
+                    <div class="tech">Consumer + REST</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2><span class="icon">🔄</span> Event Flow</h2>
+        <div class="flow-diagram">
+            <span class="flow-box blue">POST /api/orders</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box green">Order Service</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box purple">Kafka [order.events]</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box orange">Payment Service</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box purple">Kafka [payment.events]</span>
+        </div>
+        <div class="flow-diagram" style="margin-top: 8px;">
+            <span class="flow-box purple">Kafka [order.events]</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box orange">Inventory Service</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box purple">Kafka [inventory.events]</span>
+        </div>
+        <div class="flow-diagram" style="margin-top: 8px;">
+            <span class="flow-box purple">Kafka Topics</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box green">Notification Service</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box blue">📋 Logs</span>
+        </div>
+        <div class="flow-diagram" style="margin-top: 8px;">
+            <span class="flow-box purple">Kafka Topics</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box green">Analytics Service</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-box blue">📈 Metrics API</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2><span class="icon">📡</span> API Showcase</h2>
+        <div class="api-grid">
+            <div class="api-card">
+                <div><span class="method method-post">POST</span><span class="endpoint">/api/orders</span></div>
+                <div class="desc">Create a new order</div>
+                <div class="code-block" style="font-size:0.8em; margin-top:8px;">
+<span class="comment">// Request</span>
+{ <span class="string">"customerId"</span>: <span class="string">"C001"</span>, <span class="string">"productId"</span>: <span class="string">"P001"</span>,
+  <span class="string">"quantity"</span>: <span class="number">2</span>, <span class="string">"totalAmount"</span>: <span class="number">3000.00</span> }
+
+<span class="comment">// Response 201</span>
+<span class="response">{ "id": "uuid", "status": "PENDING", ... }</span>
+                </div>
+            </div>
+            <div class="api-card">
+                <div><span class="method method-get">GET</span><span class="endpoint">/api/orders</span></div>
+                <div class="desc">List all orders</div>
+                <div class="code-block" style="font-size:0.8em; margin-top:8px;">
+<span class="comment">// Response 200</span>
+<span class="response">[{ "id": "uuid", "customerId": "C001", ... }]</span>
+                </div>
+            </div>
+            <div class="api-card">
+                <div><span class="method method-post">POST</span><span class="endpoint">/api/products</span></div>
+                <div class="desc">Add a product</div>
+                <div class="code-block" style="font-size:0.8em; margin-top:8px;">
+<span class="comment">// Request</span>
+{ <span class="string">"id"</span>: <span class="string">"P005"</span>, <span class="string">"name"</span>: <span class="string">"Headset"</span>,
+  <span class="string">"stock"</span>: <span class="number">50</span>, <span class="string">"price"</span>: <span class="number">150.00</span> }
+                </div>
+            </div>
+            <div class="api-card">
+                <div><span class="method method-get">GET</span><span class="endpoint">/api/analytics/summary</span></div>
+                <div class="desc">Get business metrics</div>
+                <div class="code-block" style="font-size:0.8em; margin-top:8px;">
+<span class="comment">// Response 200</span>
+<span class="response">{
+  "totalOrders": 42,
+  "successfulPayments": 34,
+  "failedPayments": 8,
+  "stockReservations": 40,
+  "stockFailures": 2
+}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2><span class="icon">💻</span> Technology Stack</h2>
+        <div class="tech-grid">
+            <div class="tech-item"><span class="label">Language</span><span class="value">Java 21</span></div>
+            <div class="tech-item"><span class="label">Framework</span><span class="value">Spring Boot 4.1</span></div>
+            <div class="tech-item"><span class="label">Event Bus</span><span class="value">Apache Kafka</span></div>
+            <div class="tech-item"><span class="label">API Gateway</span><span class="value">Spring Cloud Gateway</span></div>
+            <div class="tech-item"><span class="label">Messaging</span><span class="value">Spring Cloud Stream</span></div>
+            <div class="tech-item"><span class="label">Build Tool</span><span class="value">Maven (Multi-Module)</span></div>
+            <div class="tech-item"><span class="label">Container</span><span class="value">Docker + Compose</span></div>
+            <div class="tech-item"><span class="label">Monitoring</span><span class="value">Prometheus + Grafana</span></div>
+            <div class="tech-item"><span class="label">Tracing</span><span class="value">Micrometer + Zipkin</span></div>
+            <div class="tech-item"><span class="label">CI/CD</span><span class="value">GitHub Actions</span></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2><span class="icon">🐳</span> Docker Compose Topology</h2>
+        <div class="code-block">
+<span class="keyword">services:</span>
+  <span class="method">zookeeper</span>     <span class="comment"># :2181  — Coordination</span>
+  <span class="method">kafka</span>          <span class="comment"># :9092  — Event Bus</span>
+  <span class="method">zipkin</span>         <span class="comment"># :9411  — Distributed Tracing</span>
+  <span class="method">prometheus</span>     <span class="comment"># :9090  — Metrics Collection</span>
+  <span class="method">grafana</span>        <span class="comment"># :3000  — Dashboards</span>
+  <span class="method">order-service</span>      <span class="comment"># :8081</span>
+  <span class="method">payment-service</span>   <span class="comment"># :8082</span>
+  <span class="method">inventory-service</span> <span class="comment"># :8083</span>
+  <span class="method">notification-service</span> <span class="comment"># :8084</span>
+  <span class="method">analytics-service</span> <span class="comment"># :8086</span>
+  <span class="method">gateway-service</span>  <span class="comment"># :8080 — Entry Point 🚪</span>
+        </div>
+        <div style="margin-top: 16px; padding: 12px; background: #0d1117; border-radius: 8px; text-align: center;">
+            <code style="color: #3fb950; font-size: 1.1em;">$ docker compose up -d  <span style="color: #8b949e;"># Start everything 🚀</span></code>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2><span class="icon">🔍</span> Observability</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div class="arch-box gateway" style="text-align:left;">
+                <div style="font-weight:600; color:#f0883e;">Zipkin</div>
+                <div style="color:#8b949e;font-size:0.85em;">http://localhost:9411</div>
+                <div style="color:#f0f6fc;font-size:0.9em;margin-top:4px;">Distributed Tracing — service mesh görselleştirme</div>
+            </div>
+            <div class="arch-box service" style="text-align:left;">
+                <div style="font-weight:600; color:#58a6ff;">Prometheus</div>
+                <div style="color:#8b949e;font-size:0.85em;">http://localhost:9090</div>
+                <div style="color:#f0f6fc;font-size:0.9em;margin-top:4px;">Metrics Collection — her servis /actuator/prometheus</div>
+            </div>
+            <div class="arch-box consumer" style="text-align:left;">
+                <div style="font-weight:600; color:#3fb950;">Grafana</div>
+                <div style="color:#8b949e;font-size:0.85em;">http://localhost:3000 (admin/admin)</div>
+                <div style="color:#f0f6fc;font-size:0.9em;margin-top:4px;">Dashboard — Prometheus datasource</div>
+            </div>
+            <div class="arch-box purple" style="text-align:left;">
+                <div style="font-weight:600; color:#a371f7;">GitHub Actions</div>
+                <div style="color:#8b949e;font-size:0.85em;">.github/workflows/ci.yml</div>
+                <div style="color:#f0f6fc;font-size:0.9em;margin-top:4px;">CI/CD — Build → Test → Package</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Made with ❤️ by <a href="https://github.com/gokalpbildirici">Gokalp Bildirici</a>
+        &nbsp;·&nbsp; <a href="https://github.com/gokalpbildirici/eventflow">github.com/gokalpbildirici/eventflow</a>
+        &nbsp;·&nbsp; MIT License
+    </div>
+
+</div>
+</body>
+</html>
